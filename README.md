@@ -28,6 +28,12 @@ Dataset/
     └── test_labels/
 ```
 
+#### Downloading the dataset
+
+The dataset can be downloaded as zip file from [Kaggle](https://www.kaggle.com/datasets/francescopignatelli/div2k-dataset-antialias?resource=download-directory). After downloading, unzip the file and place the extracted `Dataset` folder in the root directory of this project.
+
+#### Dataset details
+
 There are 19570 train image-pairs, 4193 validation image-pairs and 4195 test image-pairs in total. The size of the images is 256x256, both the low-resolution and high-resolution versions. Exploration of the dataset can be found in the `data_exploration.ipynb` notebook.
 
 ![input_10 / output_10](readme_assets/example10.png)
