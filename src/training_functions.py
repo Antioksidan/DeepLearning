@@ -154,8 +154,8 @@ def train(G, D, train_loader, val_loader=None, num_epochs=50, lr=1e-4, save_samp
         else:
             print(f"Epoch {epoch}: validation skipped (no pairs).")
 
-def save_models(G, D):
+def save_models(G, D, uid=None):
     os.makedirs("models", exist_ok=True)
-    torch.save(G.state_dict(), "models/generator_srgan.pth")
-    torch.save(D.state_dict(), "models/discriminator_srgan.pth")
-    print("Models saved as models/generator_srgan.pth and models/discriminator_srgan.pth")
+    torch.save(G.state_dict(), f"models/generator_srgan_{uid}.pth")
+    torch.save(D.state_dict(), f"models/discriminator_srgan_{uid}.pth")
+    print(f"Models saved as models/generator_srgan_{uid}.pth and models/discriminator_srgan_{uid}.pth")
