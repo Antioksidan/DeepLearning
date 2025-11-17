@@ -47,11 +47,11 @@ Exploration of the dataset can be found in the `data_exploration.ipynb` notebook
 
 There are 2 possibilities to run the projec.
 
-### Run project using Google Colab
+#### Run project using Google Colab
 
 This way is recommended if you do not have a powerful GPU available locally. Both training and evaluation can be done in the following [colab notebook](https://colab.research.google.com/drive/1qBS-JGl1o3cseP8tEqf0Va77MEKkgHdg?usp=sharing).
 
-### Run project locally
+#### Run project locally
 
 1. Clone the [repository](https://github.com/Antioksidan/DeepLearning) to your local machine. 
 
