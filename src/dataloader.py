@@ -40,7 +40,7 @@ class DIV2KDataset(Dataset):
         return lr_image, hr_image
 
 class DIV2KDataModule:
-    def __init__(self, lr_dir='Dataset', hr_dir='Dataset', batch_size=16, num_workers=4):
+    def __init__(self, lr_dir='Dataset', hr_dir='Dataset'):
         """
         Args:
             lr_dir: Directory with low-resolution images
@@ -53,8 +53,8 @@ class DIV2KDataModule:
         self.transform = transforms.Compose([
             transforms.ToTensor(),
         ])
-        self.batch_size = batch_size
-        self.num_workers = num_workers
+        # self.batch_size = batch_size
+        # self.num_workers = num_workers
 
     def setup(self):
         self.train_dataset = DIV2KDataset(
@@ -75,29 +75,29 @@ class DIV2KDataModule:
             transform=self.transform
         )
 
-    def train_dataloader(self):
+    def train_dataloader(self, batch_size=16, num_workers=4):
         return DataLoader(
             self.train_dataset,
-            batch_size=self.batch_size,
+            batch_size=batch_size,
             shuffle=True,
-            num_workers=self.num_workers,
+            num_workers=num_workers,
             pin_memory=True
         )
 
-    def val_dataloader(self):
+    def val_dataloader(self, batch_size=16, num_workers=4):
         return DataLoader(
             self.val_dataset,
-            batch_size=self.batch_size,
+            batch_size=batch_size,
             shuffle=False,
-            num_workers=self.num_workers,
+            num_workers=num_workers,
             pin_memory=True
         )
 
-    def test_dataloader(self):
+    def test_dataloader(self, batch_size=16, num_workers=4):
         return DataLoader(
             self.test_dataset,
-            batch_size=self.batch_size,
+            batch_size=batch_size,
             shuffle=False,
-            num_workers=self.num_workers,
+            num_workers=num_workers,
             pin_memory=True
         )
