@@ -34,12 +34,54 @@ The dataset can be downloaded as zip file from [Kaggle](https://www.kaggle.com/d
 
 #### Dataset details
 
-There are 19570 train image-pairs, 4193 validation image-pairs and 4195 test image-pairs in total. The size of the images is 256x256, both the low-resolution and high-resolution versions. Exploration of the dataset can be found in the `data_exploration.ipynb` notebook.
+There are 19570 train image-pairs, 4193 validation image-pairs and 4195 test image-pairs in total. The size of the LR images is 64x64, and 256*256 for HR images. Originally LR images were 256x256 (but more blurry), but we downscaled them to 64x64 using `cv2.INTER_CUBIC` to create a more challenging super-resolution task. The script used for downscaling can be found in `downsize_inputs.py`. The dataset with dowsized images can be found [here](https://drive.google.com/file/d/1lqBvhWfWsF_F2siT6PUEvgi3Eiboj5lC/view?usp=drive_link).
+
+Exploration of the dataset can be found in the `data_exploration.ipynb` notebook.
 
 ![input_10 / output_10](readme_assets/example10.png)
 
-##### Example inputs:
-![Low Resolution Input](readme_assets/input_images.png)
+### How to run project
 
-##### Example outputs:
-![High Resolution Output](readme_assets/output_images.png)
+There are 2 possibilities to run the projec.
+
+### Run project using Google Colab
+
+This way is recommended if you do not have a powerful GPU available locally. Both training and evaluation can be done in the following [colab notebook](https://colab.research.google.com/drive/1qBS-JGl1o3cseP8tEqf0Va77MEKkgHdg?usp=sharing).
+
+### Run project locally
+
+1. Clone the [repository](https://github.com/Antioksidan/DeepLearning) to your local machine. 
+
+```bash
+git clone https://github.com/Antioksidan/DeepLearning
+cd DeepLearning
+```
+
+2. Make sure you have Python 3.8+ installed. It is recommended to use a virtual environment. You can create and activate a virtual environment using the following commands:
+
+```bash
+python -m venv venv
+source venv/bin/activate  # On Windows use `venv\Scripts\activate`
+```
+
+3. Install the required dependencies using pip:
+
+```bash
+pip install -r requirements.txt
+```
+
+4. Dependencies of the projects are in the src folder:
+
+```
+src/
+    ├── __init__.py
+    ├── dataloader.py # data loading and preprocessing
+    ├── discriminator.py # discriminator model
+    ├── generator.py # generator model
+    ├── training_functions.py # training loops
+    └── vgg_wrapper.py # VGG feature extractor for perceptual loss
+```
+
+5. For training the models, you can run the `train_pipeline.ipynb` notebook. Make sure to adjust the paths to the dataset if necessary.
+
+6. For evaluating the trained models, you can run the `eval_pipeline.ipynb` notebook. Again, ensure that the paths to the dataset and model checkpoints are correctly set.
