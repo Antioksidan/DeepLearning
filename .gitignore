@@ -3,5 +3,11 @@ myenv/
 __pycache__/
 .ipynb_checkpoints/
 
+*.png
+*.jpg
+*.jpeg
 *.zip
+*.pdf
 *.tar.gz
+
+*_old*

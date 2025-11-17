@@ -4,80 +4,118 @@ from torchvision import models
 import numpy as np
 
 class Discriminator(nn.Module):
-    def __init__(self, input_shape):
-        """
-        Implements the Discriminator network from the diagram.
-        
-        Args:
-            input_shape (tuple): The shape of the input HR/SR images,
-                                 e.g., (3, 96, 96) for (channels, height, width).
-                                 This is needed to calculate the final dense layer size.
-        """
-        super(Discriminator, self).__init__()
+    def __init__(self):
+        super().__init__()
 
-        in_channels, in_height, in_width = input_shape
+        def block(in_c, out_c, stride):
+            return nn.Sequential(
+                nn.Conv2d(in_c, out_c, 3, stride, 1),
+                nn.BatchNorm2d(out_c),
+                nn.LeakyReLU(0.2, inplace=True),
+            )
 
-        # Helper function for a single discriminator block
-        def discriminator_block(in_filters, out_filters, stride=1, bn=True):
-            """
-            Creates a block: Conv(k3s_) -> BN -> LeakyReLU
-            """
-            layers = []
-            # k3n_s_
-            layers.append(nn.Conv2d(in_filters, out_filters, kernel_size=3, stride=stride, padding=1))
-            if bn:
-                layers.append(nn.BatchNorm2d(out_filters))
-            layers.append(nn.LeakyReLU(0.2, inplace=True))
-            return nn.Sequential(*layers)
+        self.features = nn.Sequential(
+            nn.Conv2d(3, 64, 3, 1, 1),
+            nn.LeakyReLU(0.2, inplace=True),
 
-        # === Convolutional Blocks ===
-        self.conv_blocks = nn.Sequential(
-            # k3n64s1
-            discriminator_block(in_channels, 64, stride=1, bn=False),
-            # k3n64s2
-            discriminator_block(64, 64, stride=2, bn=True),
-            # k3n128s1
-            discriminator_block(64, 128, stride=1, bn=True),
-            # k3n128s2
-            discriminator_block(128, 128, stride=2, bn=True),
-            # k3n256s1
-            discriminator_block(128, 256, stride=1, bn=True),
-            # k3n256s2
-            discriminator_block(256, 256, stride=2, bn=True),
-            # k3n512s1
-            discriminator_block(256, 512, stride=1, bn=True),
-            # k3n512s2
-            discriminator_block(512, 512, stride=2, bn=True),
+            block(64, 64, 2),
+            block(64, 128, 1),
+            block(128, 128, 2),
+            block(128, 256, 1),
+            block(256, 256, 2),
+            block(256, 512, 1),
+            block(512, 512, 2),
         )
 
-        # === Dense Layers ===
-        # Calculate the flattened feature size after the conv blocks
-        # There are 4 strided convolutions (s2), so the spatial dimension is reduced by 2^4 = 16
-        downsampled_height = in_height // (2**4)
-        downsampled_width = in_width // (2**4)
-        in_features_dense = 512 * downsampled_height * downsampled_width
-
-        self.dense_layers = nn.Sequential(
-            # Dense (1024)
-            nn.Linear(in_features_dense, 1024),
+        self.classifier = nn.Sequential(
+            nn.AdaptiveAvgPool2d(1),
+            nn.Flatten(),
+            nn.Linear(512, 1024),
             nn.LeakyReLU(0.2, inplace=True),
-            # Dense (1)
             nn.Linear(1024, 1),
-            # Sigmoid
-            # nn.Sigmoid()
+            nn.Sigmoid(),
         )
 
     def forward(self, x):
-        batch_size = x.size(0)
+        x = self.features(x)
+        x = self.classifier(x)
+        return x
+
+# class Discriminator(nn.Module):
+#     def __init__(self, input_shape):
+#         """
+#         Implements the Discriminator network from the diagram.
         
-        # Pass through conv blocks
-        out = self.conv_blocks(x)
+#         Args:
+#             input_shape (tuple): The shape of the input HR/SR images,
+#                                  e.g., (3, 96, 96) for (channels, height, width).
+#                                  This is needed to calculate the final dense layer size.
+#         """
+#         super(Discriminator, self).__init__()
+
+#         in_channels, in_height, in_width = input_shape
+
+#         # Helper function for a single discriminator block
+#         def discriminator_block(in_filters, out_filters, stride=1, bn=True):
+#             """
+#             Creates a block: Conv(k3s_) -> BN -> LeakyReLU
+#             """
+#             layers = []
+#             # k3n_s_
+#             layers.append(nn.Conv2d(in_filters, out_filters, kernel_size=3, stride=stride, padding=1))
+#             if bn:
+#                 layers.append(nn.BatchNorm2d(out_filters))
+#             layers.append(nn.LeakyReLU(0.2, inplace=True))
+#             return nn.Sequential(*layers)
+
+#         # === Convolutional Blocks ===
+#         self.conv_blocks = nn.Sequential(
+#             # k3n64s1
+#             discriminator_block(in_channels, 64, stride=1, bn=False),
+#             # k3n64s2
+#             discriminator_block(64, 64, stride=2, bn=True),
+#             # k3n128s1
+#             discriminator_block(64, 128, stride=1, bn=True),
+#             # k3n128s2
+#             discriminator_block(128, 128, stride=2, bn=True),
+#             # k3n256s1
+#             discriminator_block(128, 256, stride=1, bn=True),
+#             # k3n256s2
+#             discriminator_block(256, 256, stride=2, bn=True),
+#             # k3n512s1
+#             discriminator_block(256, 512, stride=1, bn=True),
+#             # k3n512s2
+#             discriminator_block(512, 512, stride=2, bn=True),
+#         )
+
+#         # === Dense Layers ===
+#         # Calculate the flattened feature size after the conv blocks
+#         # There are 4 strided convolutions (s2), so the spatial dimension is reduced by 2^4 = 16
+#         downsampled_height = in_height // (2**4)
+#         downsampled_width = in_width // (2**4)
+#         in_features_dense = 512 * downsampled_height * downsampled_width
+
+#         self.dense_layers = nn.Sequential(
+#             # Dense (1024)
+#             nn.Linear(in_features_dense, 1024),
+#             nn.LeakyReLU(0.2, inplace=True),
+#             # Dense (1)
+#             nn.Linear(1024, 1),
+#             # Sigmoid
+#             # nn.Sigmoid()
+#         )
+
+#     def forward(self, x):
+#         batch_size = x.size(0)
         
-        # Flatten the output for the dense layers
-        # view(batch_size, -1) automatically calculates the flattened size
-        out = out.view(batch_size, -1)
+#         # Pass through conv blocks
+#         out = self.conv_blocks(x)
         
-        # Pass through dense layers
-        out = self.dense_layers(out)
+#         # Flatten the output for the dense layers
+#         # view(batch_size, -1) automatically calculates the flattened size
+#         out = out.view(batch_size, -1)
         
-        return out
+#         # Pass through dense layers
+#         out = self.dense_layers(out)
+        
+#         return out
