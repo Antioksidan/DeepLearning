@@ -5,7 +5,8 @@ import torch.nn.functional as F
 import numpy as np
 import math
 import tqdm
-import os
+import os, time
+import wandb
 
 # custom dataloader
 from src.dataloader import DIV2KDataModule
@@ -34,9 +35,23 @@ def save_sample(sr_batch, epoch, out_dir="samples"):
     img = sr_batch[0].detach().cpu()  # [3,H,W], in [0,1] thanks to Sigmoid
     utils.save_image(img, os.path.join(out_dir, f"sr_epoch_{epoch:03d}.png"))
 
-def pretrain_generator(G, train_loader, pretrain_epochs=10, lr=1e-4, save_samples=False):
+def pretrain_generator(G, train_loader, pretrain_epochs=10, lr=1e-4, save_samples=False, use_wandb=False):
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print("Using device:", device)
+
+    # Initialize wandb if enabled
+    if use_wandb:
+        timestamp = int(time.time())
+        wandb.init(
+            name=f"pretrain_generator_{timestamp}",
+            project="veo_srgan", 
+            config={
+            "pretrain_epochs": pretrain_epochs,
+            "device": device,
+            "lr": lr,
+            "architecture": "Generator",
+        })
+        wandb.watch(G, log="all", log_freq=100)
 
     # pretrain generator (with mse)
     print("Pretraining generator...")
@@ -48,6 +63,9 @@ def pretrain_generator(G, train_loader, pretrain_epochs=10, lr=1e-4, save_sample
     for epoch in range(1, pretrain_epochs + 1):
         G.train()
         loop = tqdm.tqdm(train_loader, desc=f"Pretrain Epoch {epoch}/{pretrain_epochs}")
+        epoch_loss = 0
+        num_batches = 0
+        
         for lr_img, hr_img in loop:
             lr_img = lr_img.to(device)
             hr_img = hr_img.to(device)
@@ -60,19 +78,61 @@ def pretrain_generator(G, train_loader, pretrain_epochs=10, lr=1e-4, save_sample
             pixel_loss.backward()
             optim_G.step()
 
+            epoch_loss += pixel_loss.item()
+            num_batches += 1
+
             loop.set_postfix({
                 "G": f"{pixel_loss.item():.4f}",
+            })
+
+            # Log batch metrics
+            if use_wandb:
+                wandb.log({"pretrain/batch_loss": pixel_loss.item()})
+
+        # Log epoch metrics
+        avg_loss = epoch_loss / num_batches
+        if use_wandb:
+            wandb.log({
+                "pretrain/epoch": epoch,
+                "pretrain/avg_loss": avg_loss,
             })
 
         # Save sample image from last batch
         if save_samples:
             save_sample(sr_img, epoch, out_dir="pretrain_samples")
+            if use_wandb:
+                wandb.log({"pretrain/sample": wandb.Image(sr_img[0].detach().cpu())})
+    
+    if use_wandb:
+        wandb.finish()
     
     return G
 
-def train(G, D, train_loader, val_loader=None, num_epochs=50, lr=1e-4, save_samples=False):
+def train(G, D, train_loader, val_loader=None, 
+          num_epochs=50, 
+          lr=1e-4, 
+          w_pix=0.01, w_adv=1e-3, 
+          save_samples=False, 
+          use_wandb=False):
+
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print("Using device:", device)
+
+    # Initialize wandb if enabled
+    if use_wandb:
+        timestamp = int(time.time())
+        wandb.init(
+            name=f"train_srgan_{timestamp}",
+            project="veo_srgan", 
+            config={
+            "num_epochs": num_epochs,
+            "device": device,
+            "lr": lr,
+            "w_pix": w_pix,
+            "w_adv": w_adv,
+            "architecture": "SRGAN",
+        })
+        wandb.watch([G, D], log="all", log_freq=100)
 
     vgg_loss = VGGLoss().to(device)
     bce = nn.BCELoss().to(device)
@@ -84,6 +144,10 @@ def train(G, D, train_loader, val_loader=None, num_epochs=50, lr=1e-4, save_samp
     for epoch in range(1, num_epochs + 1):
         G.train()
         D.train()
+
+        epoch_d_loss = 0
+        epoch_g_loss = 0
+        num_batches = 0
 
         loop = tqdm.tqdm(train_loader, desc=f"Epoch {epoch}/{num_epochs}")
         for lr_img, hr_img in loop:
@@ -123,19 +187,45 @@ def train(G, D, train_loader, val_loader=None, num_epochs=50, lr=1e-4, save_samp
             pixel_loss = mse(sr_img, hr_img)
 
             # combine (weights can be tuned)
-            g_loss = perceptual + 0.01 * pixel_loss + 1e-3 * adv_loss
+            g_loss = perceptual + w_pix * pixel_loss + w_adv * adv_loss
 
             g_loss.backward()
             optim_G.step()
+
+            epoch_d_loss += d_loss.item()
+            epoch_g_loss += g_loss.item()
+            num_batches += 1
 
             loop.set_postfix({
                 "D": f"{d_loss.item():.4f}",
                 "G": f"{g_loss.item():.4f}",
             })
 
+            # Log batch metrics
+            if use_wandb:
+                wandb.log({
+                    "train/d_loss": d_loss.item(),
+                    "train/d_loss_real": d_loss_real.item(),
+                    "train/d_loss_fake": d_loss_fake.item(),
+                    "train/g_loss": g_loss.item(),
+                    "train/adversarial_loss": adv_loss.item(),
+                    "train/perceptual_loss": perceptual.item(),
+                    "train/pixel_loss": pixel_loss.item(),
+                })
+
+        # Log epoch averages
+        if use_wandb:
+            wandb.log({
+                "train/epoch": epoch,
+                "train/avg_d_loss": epoch_d_loss / num_batches,
+                "train/avg_g_loss": epoch_g_loss / num_batches,
+            })
+
         # Save sample image from last batch
         if save_samples:
             save_sample(sr_img, epoch)
+            if use_wandb:
+                wandb.log({"train/sample": wandb.Image(sr_img[0].detach().cpu())})
 
         # ---------------------
         # Validation PSNR
@@ -151,8 +241,17 @@ def train(G, D, train_loader, val_loader=None, num_epochs=50, lr=1e-4, save_samp
                     psnr_vals.append(psnr(sr_img, hr_img))
                 mean_psnr = sum(psnr_vals) / len(psnr_vals)
                 print(f"Validation PSNR after epoch {epoch}: {mean_psnr:.2f} dB")
+                
+                if use_wandb:
+                    wandb.log({
+                        "val/psnr": mean_psnr,
+                        "val/epoch": epoch,
+                    })
         else:
             print(f"Epoch {epoch}: validation skipped (no pairs).")
+
+    if use_wandb:
+        wandb.finish()
 
 def save_models(G, D, uid=None):
     os.makedirs("models", exist_ok=True)

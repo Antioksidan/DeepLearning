@@ -1,4 +1,5 @@
 Dataset/
+literature/
 myenv/
 __pycache__/
 .ipynb_checkpoints/
@@ -8,7 +9,6 @@ __pycache__/
 *.jpg
 *.jpeg
 *.zip
-*.pdf
 *.tar.gz
 
 *_old*
