@@ -4,7 +4,7 @@ from torchvision import models
 import numpy as np
 
 class Discriminator(nn.Module):
-    def __init__(self):
+    def __init__(self, last_sigmoid=True):
         super().__init__()
 
         def block(in_c, out_c, stride):
@@ -27,14 +27,17 @@ class Discriminator(nn.Module):
             block(512, 512, 2),
         )
 
-        self.classifier = nn.Sequential(
+        class_layers = [
             nn.AdaptiveAvgPool2d(1),
             nn.Flatten(),
             nn.Linear(512, 1024),
             nn.LeakyReLU(0.2, inplace=True),
-            nn.Linear(1024, 1),
-            nn.Sigmoid(),
-        )
+            nn.Linear(1024, 1)
+        ]
+        if last_sigmoid:
+            class_layers.append(nn.Sigmoid())
+
+        self.classifier = nn.Sequential(*class_layers)
 
     def forward(self, x):
         x = self.features(x)

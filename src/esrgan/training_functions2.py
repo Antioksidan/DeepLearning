@@ -121,7 +121,7 @@ def train_esrgan(G, D, train_loader, val_loader=None,
         wandb.watch([G, D], log="all", log_freq=100)
 
     vgg_loss = VGGLoss2().to(device)
-    bce = nn.BCELoss().to(device)
+    bce = nn.BCEWithLogitsLoss().to(device)
     mae = nn.L1Loss().to(device)
 
     optim_G = torch.optim.Adam(G.parameters(), lr=lr)
