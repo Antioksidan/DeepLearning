@@ -12,3 +12,8 @@ __pycache__/
 *.tar.gz
 
 *_old*
+
+# Exception: include images in readme_assets folder
+!readme_assets/*.png
+!readme_assets/*.jpg
+!readme_assets/*.jpeg

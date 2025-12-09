@@ -51,7 +51,11 @@ There are 2 possibilities to run the projec.
 
 This way is recommended if you do not have a powerful GPU available locally. Both training and evaluation can be done in the following [colab notebook](https://colab.research.google.com/drive/1qBS-JGl1o3cseP8tEqf0Va77MEKkgHdg?usp=sharing).
 
-#### Run project locally
+#### Run project locally 
+
+**This option is deprecated !!** <br>
+Instead of local training and evaluation, use the colab notebook instead:
+[srgan_project_bme.ipynb](https://colab.research.google.com/drive/1qBS-JGl1o3cseP8tEqf0Va77MEKkgHdg?usp=sharing)
 
 1. Clone the [repository](https://github.com/Antioksidan/DeepLearning) to your local machine. 
 
@@ -82,7 +86,12 @@ src/
     ├── discriminator.py # discriminator model
     ├── generator.py # generator model
     ├── training_functions.py # training loops
-    └── vgg_wrapper.py # VGG feature extractor for perceptual loss
+    ├── vgg_wrapper.py # VGG feature extractor for perceptual loss
+    └── esrgan/
+        ├── __init__.py
+        ├── generator2.py # ESRGAN generator model
+        ├── training_functions2.py # ESRGAN training loops
+        └── vgg_wrapper2.py # VGG feature extractor for ESRGAN perceptual loss
 ```
 
 5. For training the models, you can run the `train_pipeline.ipynb` notebook. Make sure to adjust the paths to the dataset if necessary.
