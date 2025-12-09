@@ -255,6 +255,8 @@ def train(G, D, train_loader, val_loader=None,
 
 def save_models(G, D, uid=None):
     os.makedirs("models", exist_ok=True)
-    torch.save(G.state_dict(), f"models/generator_srgan_{uid}.pth")
-    torch.save(D.state_dict(), f"models/discriminator_srgan_{uid}.pth")
-    print(f"Models saved as models/generator_srgan_{uid}.pth and models/discriminator_srgan_{uid}.pth")
+    if uid is None:
+        uid = int(time.time())
+    torch.save(G.state_dict(), f"models/generator_{uid}.pth")
+    torch.save(D.state_dict(), f"models/discriminator_{uid}.pth")
+    print(f"Models saved as models/generator_{uid}.pth and models/discriminator_{uid}.pth")
