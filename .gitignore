@@ -17,3 +17,6 @@ __pycache__/
 !readme_assets/*.png
 !readme_assets/*.jpg
 !readme_assets/*.jpeg
+!readme_assets/result_pics/*.png
+!readme_assets/result_pics/*.jpg
+!readme_assets/result_pics/*.jpeg
