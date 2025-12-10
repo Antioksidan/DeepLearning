@@ -12,6 +12,8 @@ Team VEO
 
 TODO:
 
+kkklllmmmm
+
 o	Overview of the chosen topic
 
 o	References to relevant scientific papers
