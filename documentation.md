@@ -45,11 +45,10 @@ Image Super-Resolution (ISR) is the task of reconstructing a high-resolution ima
 
 Generative Adversarial Networks, proposed by Goodfellow et al. (2014), are composed of two neural networks competing with each other: one is the generator, and the other is the discriminator. The generator generates synthetic images that try to mimic real HR images, while the discriminator assesses whether its input is real or generated. This adversarial training process encourages the generator to synthesize more realistic and perceptually plausible images.
 
-## 2.1 SRGAN
 The Super-Resolution Generative Adversarial Network was the first GAN-based approach, proposed by Ledig et al. (2017), that achieved photo-realistic single-image super-resolution. SRGAN combines the adversarial loss with a perceptual loss computed using feature maps of a VGG network (Simonyan & Zisserman, 2015), which is able to produce sharper textures than a pixel-wise loss function like Mean Squared Error.
 TODO: describing GAN and superresolution concepts, and SRGAN architecture from the paper
 
-## 2.2 SRGAN Architecture
+## 2.1 SRGAN Architecture
 The SRGAN includes a generator and a discriminator network. The generator generates HR outputs from the LR images, and the discriminator is used to differentiate between real HR images and those that the generator produces. The adversarial loss, content loss, and perceptual loss altogether contribute to the training objective that guides the generator in generating visually realistic textures, together with structurally accurate reconstructions.
 
 ### Discriminator Network
@@ -171,9 +170,9 @@ ESRGAN also refines the loss functions from SRGAN to achieve more realistic and 
   - Relativistic adversarial loss ($\mathcal{L}_{G}^{Ra}$)  
   - Pixel-level $L_{1}$ loss  
 
-  $$
-  \mathcal{L}_{G}^{\text{ESRGAN}} = \mathcal{L}_{\text{percep}} + \lambda_{\text{adv}} \cdot \mathcal{L}_{G}^{\text{Ra}} + \lambda_{1} \, \Vert G(I_{\text{LR}}) -I_{\text{HR}} \Vert_{1}
-  $$
+$$
+\mathcal{L}_{G}^{\text{ESRGAN}} = \mathcal{L}_{\text{percep}} + \lambda_{\text{adv}} \cdot \mathcal{L}_{G}^{\text{Ra}} + \lambda_{1} \, \Vert G(I_{\text{LR}}) -I_{\text{HR}} \Vert_{1}
+$$
 
   Here, $\lambda_{\text{adv}}$ and $\lambda_{1}$ are weighting coefficients.  
   The use of $L_{1}$ loss (instead of MSE in SRGAN) helps achieve sharper edges and better contrast.
