@@ -97,7 +97,8 @@ def pretrain_generator_rrdb(G, train_loader, pretrain_epochs=10, lr=1e-4, save_s
 def train_esrgan(G, D, train_loader, val_loader=None, 
           num_epochs=50, 
           lr=1e-4, 
-          w_pix=0.01, w_adv=5e-3, 
+          w_pix=1e-2,
+          w_adv=5e-3, 
           save_samples=False, 
           use_wandb=False):
 
@@ -167,8 +168,8 @@ def train_esrgan(G, D, train_loader, val_loader=None,
             real_out = D(hr_img).detach() # We don't update D here
 
             # Pixel & Perceptual losses
-            pixel_loss = mae(sr_img, hr_img) # ESRGAN typically uses L1 pixel loss
             percep_loss = vgg_loss(sr_img, hr_img)
+            pix_loss = mae(sr_img, hr_img)
 
             # Adversarial loss (Symmetrical form for Generator)
             # We want: fake to be "more real" than avg real AND real to be "less real" than avg fake
@@ -178,7 +179,7 @@ def train_esrgan(G, D, train_loader, val_loader=None,
 
             # Total Generator Loss
             # Weights recommended by paper: lambda=5e-3 (adv), eta=1e-2 (pixel)
-            g_loss = percep_loss + w_adv * adv_loss + w_pix * pixel_loss 
+            g_loss = percep_loss + w_adv * adv_loss + w_pix * pix_loss
 
             g_loss.backward()
             optim_G.step()
@@ -201,7 +202,7 @@ def train_esrgan(G, D, train_loader, val_loader=None,
                     "train/g_loss": g_loss.item(),
                     "train/adversarial_loss": adv_loss.item(),
                     "train/perceptual_loss": percep_loss.item(),
-                    "train/pixel_loss": pixel_loss.item(),
+                    "train/pixel_loss": pix_loss.item(),
                 })
 
         # Log epoch averages

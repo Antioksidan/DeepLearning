@@ -110,8 +110,7 @@ def pretrain_generator(G, train_loader, pretrain_epochs=10, lr=1e-4, save_sample
 
 def train(G, D, train_loader, val_loader=None, 
           num_epochs=50, 
-          lr=1e-4, 
-          w_pix=0.01, w_adv=1e-3, 
+          lr=1e-4, w_adv=1e-3, 
           save_samples=False, 
           use_wandb=False):
 
@@ -128,7 +127,6 @@ def train(G, D, train_loader, val_loader=None,
             "num_epochs": num_epochs,
             "device": device,
             "lr": lr,
-            "w_pix": w_pix,
             "w_adv": w_adv,
             "architecture": "SRGAN",
         })
@@ -184,10 +182,9 @@ def train(G, D, train_loader, val_loader=None,
 
             # content losses
             perceptual = vgg_loss(sr_img, hr_img)
-            pixel_loss = mse(sr_img, hr_img)
 
             # combine (weights can be tuned)
-            g_loss = perceptual + w_pix * pixel_loss + w_adv * adv_loss
+            g_loss = perceptual + w_adv * adv_loss
 
             g_loss.backward()
             optim_G.step()
@@ -209,8 +206,7 @@ def train(G, D, train_loader, val_loader=None,
                     "train/d_loss_fake": d_loss_fake.item(),
                     "train/g_loss": g_loss.item(),
                     "train/adversarial_loss": adv_loss.item(),
-                    "train/perceptual_loss": perceptual.item(),
-                    "train/pixel_loss": pixel_loss.item(),
+                    "train/perceptual_loss": perceptual.item()
                 })
 
         # Log epoch averages

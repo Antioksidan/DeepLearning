@@ -39,20 +39,16 @@ This project focuses on the implementation and analysis of GAN-based image super
 These models will be trained using standard datasets such as DIV2K and CelebA, and evaluated both quantitatively (using PSNR and SSIM) and qualitatively (via Mean Opinion Score).  
 By comparing these deep learning methods with traditional interpolation techniques, the project aims to highlight the benefits of adversarial and perceptual learning in generating high-resolution images that align closely with human visual expectations.
 
-TODO:
-
-
-o	References to relevant scientific papers
-
-
 ---
 # 2. Methods
 Image Super-Resolution (ISR) is the task of reconstructing a high-resolution image from its corresponding low-resolution input. Classic interpolation methods, including both bicubic and bilinear interpolations, perform the estimation based on deterministic mathematical formulations; these sometimes result in overly smooth and blurry outcomes due to their inability to recover high-frequency texture details (Keys, 1981). Deep learning-based methods overcome such limitations by learning non-linear mappings between LR and HR spaces (Dong et al., 2016).
 
 Generative Adversarial Networks, proposed by Goodfellow et al. (2014), are composed of two neural networks competing with each other: one is the generator, and the other is the discriminator. The generator generates synthetic images that try to mimic real HR images, while the discriminator assesses whether its input is real or generated. This adversarial training process encourages the generator to synthesize more realistic and perceptually plausible images.
+
 ## 2.1 SRGAN
 The Super-Resolution Generative Adversarial Network was the first GAN-based approach, proposed by Ledig et al. (2017), that achieved photo-realistic single-image super-resolution. SRGAN combines the adversarial loss with a perceptual loss computed using feature maps of a VGG network (Simonyan & Zisserman, 2015), which is able to produce sharper textures than a pixel-wise loss function like Mean Squared Error.
 TODO: describing GAN and superresolution concepts, and SRGAN architecture from the paper
+
 ## 2.2 SRGAN Architecture
 The SRGAN includes a generator and a discriminator network. The generator generates HR outputs from the LR images, and the discriminator is used to differentiate between real HR images and those that the generator produces. The adversarial loss, content loss, and perceptual loss altogether contribute to the training objective that guides the generator in generating visually realistic textures, together with structurally accurate reconstructions.
 
@@ -73,9 +69,6 @@ Here, $D(\cdot)$ denotes the discriminator, $I^{HR}$ is a real high-resolution i
 The discriminator aims to **maximize** this objective by correctly classifying real and generated samples,  
 while the generator attempts to **minimize** it to successfully fool the discriminator.
 
-
-TODO: describing Discriminator architecture from srgan paper
-
 ![discriminator](readme_assets/discriminator.png)
 
 ### Generator Network
@@ -89,8 +82,7 @@ The generator consists of a convolutional layer that extracts low-level features
 - Feature Aggregation Layer: After the residual blocks, a convolutional layer is added on top to fuse the features coming from all residual paths. A skip connection from the initial feature map (before the residual stack) is added to this output, preserving the low-frequency information.
 - Upsampling Layers: To increase spatial resolution, SRGAN uses two sub-pixel convolutional layers (also called pixel shuffle layers) that successively double the image resolution. Each upsampling layer is followed by a PReLU activation. These layers progressively reconstruct the HR image, learning the upscaling process in an end-to-end manner, rather than depending on predefined interpolation.
 
-
-TODO: describing Generator architecture from srgan paper (8 RB instead of 16 in paper to make training faster)
+We used **8 residual blocks** in our implementation.
 
 ![generator](readme_assets/generator.png)
 
@@ -108,7 +100,7 @@ $$
 $$
 
 Here, $\phi_{i,j}$ represents the feature maps extracted from the $j$-th convolution layer  
-before the $i$-th pooling layer of the VGG-19 network.
+before the $i$-th pooling layer of the VGG-19 network. In our implementation, we extracted features from the **ReLU activation after the 8th convolutional layer before the 3th max-pooling layer** (first 18 layers in VGG network).
 
 - Adversarial Loss
 
@@ -127,10 +119,7 @@ $$
 $$
 
 This weighting factor balances **perceptual fidelity** with **texture realism**,  
-allowing the generator to produce sharper, more natural-looking images.
-
-
-TODO: describing loss functions from srgan paper
+allowing the generator to produce sharper, more natural-looking images. If adversial loss weight is too low, the Discriminator will be ignored, thus reducing the feedback to Generator about the realism of generated images. This behavior is seen during training when the Discriminator loss quickly becomes 0. During training, we observed this behavior and hence increased adversial weight to 5e-2.
 
 ## 2.2 ESRGAN
 
@@ -138,8 +127,6 @@ TODO: describing loss functions from srgan paper
 
 The **Enhanced Super-Resolution Generative Adversarial Network (ESRGAN)**, proposed by **Wang et al. (2018)**, builds upon SRGAN to further enhance perceptual quality and stabilize training.  
 The main architectural innovation is the use of **Residual-in-Residual Dense Blocks (RRDBs)**, which combine dense connections and residual learning to improve feature representation and gradient flow.
-
----
 
 #### Key Architectural Changes Compared to SRGAN
 
@@ -162,8 +149,7 @@ The main architectural innovation is the use of **Residual-in-Residual Dense Blo
 
 **Generator Pipeline:**  
 $\text{Input Image} \rightarrow \text{Feature Extraction} \rightarrow N \times \text{RRDB} \rightarrow \text{Upsampling Layers} \rightarrow \text{Output Image}$
-
----
+We used **12 RRDB blocks** in our implementation.
 
 ### Modified Loss Functions
 
@@ -171,7 +157,7 @@ ESRGAN also refines the loss functions from SRGAN to achieve more realistic and 
 
 - **Perceptual Loss Based on Features Before Activation:**  
   Unlike SRGAN, which computes perceptual loss from activated VGG-19 feature maps, ESRGAN uses **pre-activation features (before ReLU)**.  
-  These features contain richer information about texture, contrast, and color, helping to produce images that are perceptually sharper and more natural (**Simonyan & Zisserman, 2015**).
+  These features contain richer information about texture, contrast, and color, helping to produce images that are perceptually sharper and more natural (**Simonyan & Zisserman, 2015**). In our implementation, we extracted features from the **convolutional layer before the 8th ReLU activation (after the 8th convolutional layer)** (first 17 layers in VGG network).
 
 - **Relativistic Adversarial Loss:**  
   ESRGAN introduces the **Relativistic average Discriminator (RaD)**, which doesn’t just decide if an image is real or fake.  
@@ -189,12 +175,9 @@ ESRGAN also refines the loss functions from SRGAN to achieve more realistic and 
   \mathcal{L}_{G}^{\text{ESRGAN}} = \mathcal{L}_{\text{percep}} + \lambda_{\text{adv}} \cdot \mathcal{L}_{G}^{\text{Ra}} + \lambda_{1} \, \Vert G(I_{\text{LR}}) -I_{\text{HR}} \Vert_{1}
   $$
 
-
   Here, $\lambda_{\text{adv}}$ and $\lambda_{1}$ are weighting coefficients.  
   The use of $L_{1}$ loss (instead of MSE in SRGAN) helps achieve sharper edges and better contrast.
-
-  
-TODO: describing loss functions from esrgan paper (what changed compared to SRGAN, (VGG loss before relu, Discriminator loss changes))
+  In our implementation, we set $\lambda_{\text{adv}} = 5 \times 10^{-3}$ and $\lambda_{1} = 1 \times 10^{-2}$ based on recommendations from the original paper. We changed the adversarial weight to 5e-2 to stabilize training.
 
 ---
 # 3. Training
@@ -203,6 +186,12 @@ TODO: describing training, times, hardware (L4 GPU on colab), tracking loss on w
 
 ---
 # 4. Evaluation
+
+| Model | PSNR | VGG Loss |
+| :--- | :---: | :---: |
+| **Bicubic Baseline** | 25.25 dB | 4.2891 |
+| **SRGAN** | 23.48 dB | 3.5674 |
+| **ESRGAN** | 23.70 dB | 3.8646 |
 
 o	Results on the test data (metrics in table (PSNR and VGG loss))
 
