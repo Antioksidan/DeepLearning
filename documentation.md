@@ -40,15 +40,36 @@ These models will be trained using standard datasets such as DIV2K and CelebA, a
 By comparing these deep learning methods with traditional interpolation techniques, the project aims to highlight the benefits of adversarial and perceptual learning in generating high-resolution images that align closely with human visual expectations.
 
 ---
-# 2. Methods
+# 2. Implementation
+
+The implementation of both SRGAN and ESRGAN models was carried out using Python and PyTorch. The codebase is organized into several modules, each responsible for different aspects of the project, including data loading, model architecture, training routines, and evaluation metrics. The GitHub repository consist of the following key components:
+
+```
+src/
+    ├── __init__.py
+    ├── dataloader.py # data loading and preprocessing
+    ├── discriminator.py # discriminator model
+    ├── generator.py # generator model
+    ├── training_functions.py # training loops
+    ├── vgg_wrapper.py # VGG feature extractor for perceptual loss
+    └── esrgan/
+        ├── __init__.py
+        ├── generator2.py # ESRGAN generator model
+        ├── training_functions2.py # ESRGAN training loops
+        └── vgg_wrapper2.py # VGG feature extractor for ESRGAN perceptual loss
+```
+
+LLM tools were utilized to assist coding, mainly Github Copilot and ChatGPT.
+
+---
+# 3. Methods
 Image Super-Resolution (ISR) is the task of reconstructing a high-resolution image from its corresponding low-resolution input. Classic interpolation methods, including both bicubic and bilinear interpolations, perform the estimation based on deterministic mathematical formulations; these sometimes result in overly smooth and blurry outcomes due to their inability to recover high-frequency texture details (Keys, 1981). Deep learning-based methods overcome such limitations by learning non-linear mappings between LR and HR spaces (Dong et al., 2016).
 
 Generative Adversarial Networks, proposed by Goodfellow et al. (2014), are composed of two neural networks competing with each other: one is the generator, and the other is the discriminator. The generator generates synthetic images that try to mimic real HR images, while the discriminator assesses whether its input is real or generated. This adversarial training process encourages the generator to synthesize more realistic and perceptually plausible images.
 
 The Super-Resolution Generative Adversarial Network was the first GAN-based approach, proposed by Ledig et al. (2017), that achieved photo-realistic single-image super-resolution. SRGAN combines the adversarial loss with a perceptual loss computed using feature maps of a VGG network (Simonyan & Zisserman, 2015), which is able to produce sharper textures than a pixel-wise loss function like Mean Squared Error.
-TODO: describing GAN and superresolution concepts, and SRGAN architecture from the paper
 
-## 2.1 SRGAN Architecture
+## 3.1 SRGAN Architecture
 The SRGAN includes a generator and a discriminator network. The generator generates HR outputs from the LR images, and the discriminator is used to differentiate between real HR images and those that the generator produces. The adversarial loss, content loss, and perceptual loss altogether contribute to the training objective that guides the generator in generating visually realistic textures, together with structurally accurate reconstructions.
 
 ### Discriminator Network
@@ -120,7 +141,7 @@ $$
 This weighting factor balances **perceptual fidelity** with **texture realism**,  
 allowing the generator to produce sharper, more natural-looking images. If adversial loss weight is too low, the Discriminator will be ignored, thus reducing the feedback to Generator about the realism of generated images. This behavior is seen during training when the Discriminator loss quickly becomes 0. During training, we observed this behavior and hence increased adversial weight to 5e-2.
 
-## 2.2 ESRGAN
+## 3.2 ESRGAN
 
 ### Modified Generator Network
 
@@ -148,6 +169,7 @@ The main architectural innovation is the use of **Residual-in-Residual Dense Blo
 
 **Generator Pipeline:**  
 $\text{Input Image} \rightarrow \text{Feature Extraction} \rightarrow N \times \text{RRDB} \rightarrow \text{Upsampling Layers} \rightarrow \text{Output Image}$
+
 We used **12 RRDB blocks** in our implementation.
 
 ### Modified Loss Functions
@@ -174,17 +196,41 @@ $$
 \mathcal{L}_{G}^{\text{ESRGAN}} = \mathcal{L}_{\text{percep}} + \lambda_{\text{adv}} \cdot \mathcal{L}_{G}^{\text{Ra}} + \lambda_{1} \, \Vert G(I_{\text{LR}}) -I_{\text{HR}} \Vert_{1}
 $$
 
-  Here, $\lambda_{\text{adv}}$ and $\lambda_{1}$ are weighting coefficients.  
-  The use of $L_{1}$ loss (instead of MSE in SRGAN) helps achieve sharper edges and better contrast.
-  In our implementation, we set $\lambda_{\text{adv}} = 5 \times 10^{-3}$ and $\lambda_{1} = 1 \times 10^{-2}$ based on recommendations from the original paper. We changed the adversarial weight to 5e-2 to stabilize training.
+Here, $\lambda_{\text{adv}}$ and $\lambda_{1}$ are weighting coefficients.  
+The use of $L_{1}$ loss (instead of MSE in SRGAN) helps achieve sharper edges and better contrast.
+In our implementation, we set $\lambda_{\text{adv}} = 5 \times 10^{-3}$ and $\lambda_{1} = 1 \times 10^{-2}$ based on recommendations from the original paper. We changed the adversarial weight to 5e-2 to stabilize training.
 
 ---
-# 3. Training
+# 4. Training
 
-TODO: describing training, times, hardware (L4 GPU on colab), tracking loss on wandb, changing hyperparameters (mainly the weight for the adversarial loss)
+We trained both SRGAN and ESRGAN models on the [DIV2K dataset](https://www.kaggle.com/datasets/francescopignatelli/div2k-dataset-antialias?resource=download-directory). There are 19570 train image-pairs, 4193 validation image-pairs and 4195 test image-pairs in total. The size of the LR images is 64x64, and 256*256 for HR images. Originally LR images were 256x256 (but more blurry), but we downscaled them to 64x64 using `cv2.INTER_CUBIC` to create a more challenging super-resolution task.
+
+## 4.1 Training SRGAN
+
+All training was executed on Google Colab using an NVIDIA L4 GPU. We first pretrained the SRGAN generator for 20 epochs using only mse content loss to provide a good initialization for adversarial training. One epoch took around 4 minutes. The loss is visible in the plot below.
+
+![srgan_pretraining](readme_assets/training_pics/srgan_pre.png)
+
+After pretraining, we trained the full SRGAN model for 37 epochs, one epoch took around 13.5 minutes. After 7 epochs, we noticed that the Discriminator loss is very small (close to 0), meaning that the Discriminator is dominating the training and the Generator is not receiving useful feedback. To mitigate this, we increased the adversarial loss weight from 1e-3 to 5e-2. This adjustment helped balance the training dynamics between the Generator and Discriminator. Below see the training loss plots.
+
+![srgan_training_g_and_d_loss](readme_assets/training_pics/srgan1.png)
+
+![srgan_training_g_percep_and_adv_loss](readme_assets/training_pics/srgan2.png)
+
+## 4.2 Training ESRGAN
+
+Similar to SRGAN, we first pretrained the ESRGAN generator only using L1 loss to provide a good initialization for adversarial training. This time we stopped pretraining after 4 epochs as loss plateaued. One epoch took around 13-14 minutes. The loss curves are shown below.
+
+![esrgan_pretraining](readme_assets/training_pics/esrgan_pre.png)
+
+After pretraining, we trained the full ESRGAN model for 7 full epochs, one epoch took around 24-25 minutes. We quickly noticed that the Discriminator loss is very small again (close to 0), so we again increased the adversarial loss weight from 5e-3 to 5e-2. This adjustment helped balance the training dynamics between the Generator and Discriminator. Below are the training loss plots.
+
+![esrgan_training_g_and_d_loss](readme_assets/training_pics/esrgan1.png)
+
+![esrgan_training_g_percep_and_adv_loss](readme_assets/training_pics/esrgan2.png)
 
 ---
-# 4. Evaluation
+# 5. Evaluation
 
 | Model | PSNR | VGG Loss |
 | :--- | :---: | :---: |
@@ -192,11 +238,9 @@ TODO: describing training, times, hardware (L4 GPU on colab), tracking loss on w
 | **SRGAN** | 23.48 dB | 3.5674 |
 | **ESRGAN** | 23.70 dB | 3.8646 |
 
-o	Results on the test data (metrics in table (PSNR and VGG loss))
+Based on metrics, both SRGAN and ESRGAN are ...
 
-o	Visualizations (plots, metrics, comparisons, etc.)
-
-o	Sometimes subjective evaluation is also useful (e.g., user studies), based on our experience, ESRGAN had worse metrics but looked better visually
+MOS...
 
 ![example_0](readme_assets/result_pics/example_0.png)
 
@@ -251,7 +295,9 @@ o	Sometimes subjective evaluation is also useful (e.g., user studies), based on 
 ![example_34](readme_assets/result_pics/example_34.png)
 
 ---
-# 5. Conclusions
+# 6. Conclusions
+
+
 
 # References
 

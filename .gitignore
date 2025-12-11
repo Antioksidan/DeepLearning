@@ -20,3 +20,6 @@ __pycache__/
 !readme_assets/result_pics/*.png
 !readme_assets/result_pics/*.jpg
 !readme_assets/result_pics/*.jpeg
+!readme_assets/training_pics/*.png
+!readme_assets/training_pics/*.jpg
+!readme_assets/training_pics/*.jpeg
