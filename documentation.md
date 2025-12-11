@@ -207,7 +207,9 @@ We trained both SRGAN and ESRGAN models on the [DIV2K dataset](https://www.kaggl
 
 ## 4.1 Training SRGAN
 
-All training was executed on Google Colab using an NVIDIA L4 GPU. We first pretrained the SRGAN generator for 20 epochs using only mse content loss to provide a good initialization for adversarial training. One epoch took around 4 minutes. The loss is visible in the plot below.
+All training was executed on Google Colab using an NVIDIA L4 GPU. We monitored training progress and logged metrics using Weights & Biases (wandb).
+
+We first pretrained the SRGAN generator for 20 epochs using only mse content loss to provide a good initialization for adversarial training. One epoch took around 4 minutes. The loss is visible in the plot below.
 
 ![srgan_pretraining](readme_assets/training_pics/srgan_pre.png)
 
@@ -232,15 +234,19 @@ After pretraining, we trained the full ESRGAN model for 7 full epochs, one epoch
 ---
 # 5. Evaluation
 
+We used **PSNR** (Peak Signal-to-Noise Ratio) and **VGG** based Perceptual Loss as quantitative metrics to evaluate the performance of the trained SRGAN and ESRGAN models on the DIV2K test set. For the VGG loss, we used the same layers as in the ESRGAN case (the first 17 layer before the 8th ReLU activation). The results on test set are summarized in the table below:
+
 | Model | PSNR | VGG Loss |
 | :--- | :---: | :---: |
 | **Bicubic Baseline** | 25.25 dB | 4.2891 |
 | **SRGAN** | 23.48 dB | 3.5674 |
 | **ESRGAN** | 23.70 dB | 3.8646 |
 
-Based on metrics, both SRGAN and ESRGAN are ...
+Based on metrics, both SRGAN and ESRGAN are slightly underperforming the bicubic baseline in terms of PSNR, which is expected as GAN-based models prioritize perceptual quality over pixel-wise accuracy. However, both models achieve lower VGG loss compared to bicubic interpolation, indicating better perceptual similarity to ground truth images. Based on these quantitative results, the SRGAN model outperforms ESRGAN in terms of perceptual loss, while ESRGAN has a slight edge in PSNR.
 
-MOS...
+However visually, the ESRGAN results appear to be more detailed and sharper compared to SRGAN. A known issue in SR tasks is that hard to capture quality with metrics alone. A common approach is to conduct Mean Opinion Score (MOS) tests, where human raters evaluate the visual quality of images. Due to time constraints, we could not perform a full MOS study, but we looked at results obtained from both models and generally preferred ESRGAN outputs for their enhanced texture details and realism.
+
+Below are some example outputs from both models compared to bicubic interpolation and ground truth HR images.
 
 ![example_0](readme_assets/result_pics/example_0.png)
 
